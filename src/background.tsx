@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef } from "react"
 import { motion } from "framer-motion"
 
 // Utility function to replace cn
@@ -122,29 +122,7 @@ export default function ParticlesBackground({
   showContent = true,
 }: CyberBackgroundProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const animationFrameRef = useRef<number>(0)
-  const [isVisible, setIsVisible] = useState(true)
   const noise = createNoise()
-  const particlesRef = useRef<Particle[]>([])
-  const lastTimeRef = useRef<number>(0)
-
-  // Visibility observer to pause animations when not visible
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsVisible(entry.isIntersecting);
-      },
-      { threshold: 0.1 }
-    );
-    
-    if (canvasRef.current) {
-      observer.observe(canvasRef.current);
-    }
-    
-    return () => observer.disconnect();
-  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -153,125 +131,83 @@ export default function ParticlesBackground({
     const ctx = canvas.getContext("2d", { alpha: true })
     if (!ctx) return
 
-    // Optimize with proper device pixel ratio handling
-    const dpr = window.devicePixelRatio || 1
-    
     const resizeCanvas = () => {
       const container = canvas.parentElement
       if (!container) return
 
-      canvas.width = container.clientWidth * dpr
-      canvas.height = container.clientHeight * dpr
-      canvas.style.width = `${container.clientWidth}px`
-      canvas.style.height = `${container.clientHeight}px`
-      ctx.scale(dpr, dpr)
-      
-      // Reset particles with new dimensions
-      initializeParticles()
-    }
-
-    const initializeParticles = () => {
-      const adjustedParticleCount = Math.min(
-        particleCount, 
-        Math.floor((canvas.width * canvas.height) / 10000) // Limit based on screen size
-      )
-      
-      const particleColors = [
-        "rgba(255, 255, 255, 0.08)",
-        "rgba(200, 200, 200, 0.05)",
-        "rgba(170, 170, 170, 0.06)",
-        "rgba(220, 220, 220, 0.04)",
-      ]
-
-      particlesRef.current = Array.from({ length: adjustedParticleCount }, () => ({
-        x: Math.random() * (canvas.width / dpr),
-        y: Math.random() * (canvas.height / dpr),
-        size: Math.random() * (particleSize.max - particleSize.min) + particleSize.min,
-        velocity: { x: 0, y: 0 },
-        life: Math.random() * 100,
-        maxLife: 100 + Math.random() * 50,
-        color: particleColors[Math.floor(Math.random() * particleColors.length)]
-      }))
+      canvas.width = container.clientWidth
+      canvas.height = container.clientHeight
     }
 
     resizeCanvas()
 
-    const animate = (timestamp: number) => {
-      if (!isVisible) {
-        animationFrameRef.current = requestAnimationFrame(animate)
-        return
-      }
-      
-      // Calculate delta time for smoother animation
-      const deltaTime = lastTimeRef.current ? (timestamp - lastTimeRef.current) / 16 : 1
-      lastTimeRef.current = timestamp
-      
-      // Clear with better alpha compositing
-      ctx.globalCompositeOperation = 'source-over'
+    const particleColors = [
+      "rgba(255, 255, 255, 0.08)",
+      "rgba(200, 200, 200, 0.05)",
+      "rgba(170, 170, 170, 0.06)",
+      "rgba(220, 220, 220, 0.04)",
+    ]
+
+    const particles: Particle[] = Array.from({ length: particleCount }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      size: Math.random() * (particleSize.max - particleSize.min) + particleSize.min,
+      velocity: { x: 0, y: 0 },
+      life: Math.random() * 100,
+      maxLife: 100 + Math.random() * 50,
+      color: particleColors[Math.floor(Math.random() * particleColors.length)]
+    }))
+
+    const animate = () => {
+      const isDark = true
+      const scheme = COLOR_SCHEME.dark
+
       ctx.fillStyle = "rgba(0, 0, 0, 0.2)"
-      ctx.fillRect(0, 0, canvas.width / dpr, canvas.height / dpr)
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-      ctx.globalCompositeOperation = 'lighter'
-      
-      const particleArray = particlesRef.current
-      const canvasWidth = canvas.width / dpr
-      const canvasHeight = canvas.height / dpr
-      const currentTime = Date.now() * 0.0001
-
-      for (const particle of particleArray) {
-        particle.life += deltaTime
+      for (const particle of particles) {
+        particle.life += 1
         if (particle.life > particle.maxLife) {
           particle.life = 0
-          particle.x = Math.random() * canvasWidth
-          particle.y = Math.random() * canvasHeight
-          particle.color = particleArray[0].color // Reuse color for efficiency
+          particle.x = Math.random() * canvas.width
+          particle.y = Math.random() * canvas.height
+          particle.color = particleColors[Math.floor(Math.random() * particleColors.length)]
         }
 
-        const n = noise.simplex3(
-          particle.x * noiseIntensity, 
-          particle.y * noiseIntensity, 
-          currentTime
-        )
+        const opacity = Math.sin((particle.life / particle.maxLife) * Math.PI) * 0.15
+
+        const n = noise.simplex3(particle.x * noiseIntensity, particle.y * noiseIntensity, Date.now() * 0.0001)
 
         const angle = n * Math.PI * 4
-        const speed = 1.2 * deltaTime
-        particle.velocity.x = Math.cos(angle) * speed
-        particle.velocity.y = Math.sin(angle) * speed
+        particle.velocity.x = Math.cos(angle) * 1.2
+        particle.velocity.y = Math.sin(angle) * 1.2
 
         particle.x += particle.velocity.x
         particle.y += particle.velocity.y
 
-        // More efficient boundary checking
-        if (particle.x < 0) particle.x = canvasWidth
-        else if (particle.x > canvasWidth) particle.x = 0
-        if (particle.y < 0) particle.y = canvasHeight
-        else if (particle.y > canvasHeight) particle.y = 0
+        if (particle.x < 0) particle.x = canvas.width
+        if (particle.x > canvas.width) particle.x = 0
+        if (particle.y < 0) particle.y = canvas.height
+        if (particle.y > canvas.height) particle.y = 0
 
-        // Batch drawing for better performance
-        if (particle.life < particle.maxLife) {
-          ctx.fillStyle = particle.color
-          ctx.beginPath()
-          ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2)
-          ctx.fill()
-        }
+        ctx.fillStyle = particle.color
+        ctx.beginPath()
+        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2)
+        ctx.fill()
       }
 
-      animationFrameRef.current = requestAnimationFrame(animate)
+      requestAnimationFrame(animate)
     }
 
-    animationFrameRef.current = requestAnimationFrame(animate)
+    animate()
 
     const handleResize = () => {
       resizeCanvas()
     }
 
     window.addEventListener("resize", handleResize)
-    
-    return () => {
-      window.removeEventListener("resize", handleResize)
-      cancelAnimationFrame(animationFrameRef.current)
-    }
-  }, [particleCount, noiseIntensity, particleSize, noise, isVisible])
+    return () => window.removeEventListener("resize", handleResize)
+  }, [particleCount, noiseIntensity, particleSize, noise])
 
   return (
     <div className={cn("w-full h-full bg-black", className)}>
