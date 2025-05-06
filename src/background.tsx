@@ -115,8 +115,8 @@ interface Particle {
 
 // Memoize the component to prevent re-renders
 const ParticlesBackground = memo(({
-  title = "Particles Background",
-  subtitle = "Make your website stand out",
+  title = "",
+  subtitle = "",
   particleCount = 2000,
   noiseIntensity = 0.003,
   particleSize = { min: 0.5, max: 3 },

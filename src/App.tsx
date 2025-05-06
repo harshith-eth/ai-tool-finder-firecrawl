@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Globe, Send, Loader2, ArrowLeft, Star, ExternalLink, ThumbsUp, ThumbsDown, Check, X, DollarSign, Users, Code, Zap, Heart, ChevronDown, ChevronUp } from 'lucide-react';
-import FirecrawlApp from '@mendable/firecrawl-js';
+import { findTools } from './services/tool-finder';
 import ParticlesBackground from './background';
 import SearchInput from './components/SearchInput';
 
@@ -21,22 +21,27 @@ interface ToolReview {
 
 interface Tool {
   name: string;
-  tagline: string;
+  tagline?: string;
   description: string;
   url: string;
-  category: string;
-  subcategory: string;
-  upvotes: number;
-  features: string[];
-  useCases: string[];
-  pricing: ToolPricingTier[];
-  reviews: ToolReview[];
-  screenshots: string[];
+  category?: string;
+  subcategory?: string;
+  upvotes?: number;
+  features?: string[];
+  useCases?: string[];
+  pricing?: ToolPricingTier[];
+  reviews?: ToolReview[];
+  screenshots?: string[];
   demoVideo?: string;
-  alternatives: {name: string, url: string}[];
-  pros: string[];
-  cons: string[];
-  lastUpdated: string;
+  alternatives?: {name: string, url: string}[];
+  pros?: string[];
+  cons?: string[];
+  lastUpdated?: string;
+  source?: string;
+  badges?: string[];
+  videoEmbed?: string;
+  rating?: number;
+  categories?: string[];
 }
 
 function App() {
@@ -52,11 +57,6 @@ function App() {
   const [activeScreenshot, setActiveScreenshot] = useState<number>(0);
   const [showGalleryModal, setShowGalleryModal] = useState<boolean>(false);
   
-  // Initialize Firecrawl with API key
-  const firecrawl = new FirecrawlApp({
-    apiKey: "fc-d5ddb525949044f8bd29d2e3688e4778"
-  });
-
   const resetSearch = () => {
     setIsResultReady(false);
     setMessages([]);
@@ -83,140 +83,55 @@ function App() {
   const searchAITool = async (searchQuery: string) => {
     if (!searchQuery) return;
     
-    setQuery(searchQuery); // Update the query state
+    setQuery(searchQuery);
     setIsProcessing(true);
     try {
-      // For MVP testing - simulate processing delay
-      // In production, this would make real API calls to Firecrawl
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      const tools = await findTools(searchQuery);
       
-      // In production implementation:
-      // const searchResult = await firecrawl.search(searchQuery, {
-      //   limit: 15,
-      //   scrapeOptions: {
-      //     formats: ["markdown"],
-      //   }
-      // });
-      
-      // Mock found tool for UI testing with extensive details
-      const mockTool: Tool = {
-        name: "Preswald AI",
-        tagline: "The ultimate AI agent for building beautiful data apps",
-        description: "An AI agent for building data apps, dashboards and reports. It helps developers quickly create visualization and analysis tools with minimal coding. Preswald interprets natural language requests to generate complex data visualizations, interactive dashboards, and analytical reports with minimal code. It connects to popular data sources, applies smart data transformations, and lets you deploy your creations with one click.",
-        url: "https://www.preswald.com",
-        category: "Developer Tools",
-        subcategory: "Data Visualization",
-        upvotes: 384,
-        demoVideo: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-        features: [
-          "AI-powered code generation for data visualizations",
-          "Natural language interface for building dashboards",
-          "Direct connections to SQL, CSV, JSON, and API data sources",
-          "Automated data cleaning and transformation",
-          "Interactive chart customization",
-          "Drag-and-drop interface for non-technical users",
-          "Real-time collaboration features",
-          "One-click deployment to web or embedded apps"
-        ],
-        useCases: [
-          "Creating interactive business dashboards",
-          "Building customer-facing analytics portals",
-          "Developing data visualization components for web apps",
-          "Automating data reporting workflows",
-          "Prototyping data-intensive applications"
-        ],
-        pricing: [
-          {
-            name: "Free",
-            price: "$0",
-            features: [
-              "5 projects",
-              "Basic visualizations",
-              "Community support",
-              "Public deployments only"
-            ]
-          },
-          {
-            name: "Pro",
-            price: "$29/month",
-            features: [
-              "Unlimited projects",
-              "Advanced visualizations",
-              "Private deployments",
-              "Team collaboration",
-              "API access"
-            ],
-            popular: true
-          },
-          {
-            name: "Enterprise",
-            price: "Custom",
-            features: [
-              "Everything in Pro",
-              "Dedicated support",
-              "Custom integrations",
-              "SLA guarantees",
-              "On-premise option"
-            ]
-          }
-        ],
-        reviews: [
-          {
-            author: "TechDev87",
-            rating: 5,
-            comment: "Game changer for our data team. We've cut dashboard development time by 70%.",
-            date: "2 days ago"
-          },
-          {
-            author: "DataVizPro",
-            rating: 4,
-            comment: "Great for quick prototyping. The AI is surprisingly good at understanding what I want.",
-            date: "1 week ago"
-          },
-          {
-            author: "StartupFounder",
-            rating: 5,
-            comment: "As a non-technical founder, this tool has been invaluable. I can create beautiful analytics for our investors without bothering our dev team.",
-            date: "3 weeks ago"
-          }
-        ],
-        screenshots: [
-          "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2070&auto=format&fit=crop",
-          "https://images.unsplash.com/photo-1543286386-713bdd548da4?q=80&w=2070&auto=format&fit=crop",
-          "https://images.unsplash.com/photo-1518644730709-0a7e42660232?q=80&w=2070&auto=format&fit=crop"
-        ],
-        alternatives: [
-          { name: "Tableau", url: "https://www.tableau.com" },
-          { name: "PowerBI", url: "https://powerbi.microsoft.com" },
-          { name: "Looker", url: "https://looker.com" }
-        ],
-        pros: [
-          "Extremely fast development of complex visualizations",
-          "Accessible to both technical and non-technical users",
-          "Clean, modern design aesthetics",
-          "Excellent documentation and tutorials"
-        ],
-        cons: [
-          "Limited customization for very specific visualization needs",
-          "Some advanced features only available in higher pricing tiers",
-          "Occasional misunderstandings of complex data relationships"
-        ],
-        lastUpdated: "October 12, 2023"
-      };
-      
-      setFoundTool(mockTool);
-      setIsResultReady(true);
-      
-      setMessages([{ 
-        type: 'bot', 
-        content: `Based on your search for "${searchQuery}", I've found the perfect AI tool for you! Preswald AI is an AI agent for building data apps, dashboards and reports. Would you like to know more about its features?` 
-      }]);
+      if (tools && tools.length > 0) {
+        // Convert the first tool to our app's Tool format
+        const bestTool = tools[0];
+        const convertedTool: Tool = {
+          name: bestTool.name,
+          description: bestTool.description,
+          url: bestTool.url,
+          category: bestTool.categories?.[0],
+          subcategory: bestTool.categories?.[1],
+          features: bestTool.description.split('. ').filter(s => s.length > 10), // Convert description sentences to features
+          pricing: bestTool.pricing ? [{
+            name: "Starting from",
+            price: bestTool.pricing,
+            features: []
+          }] : undefined,
+          screenshots: [],
+          pros: [],
+          cons: [],
+          lastUpdated: new Date().toLocaleDateString(),
+          source: bestTool.source,
+          badges: bestTool.badges,
+          videoEmbed: bestTool.videoEmbed,
+          rating: bestTool.rating
+        };
+
+        setFoundTool(convertedTool);
+        setIsResultReady(true);
+        
+        setMessages([{ 
+          type: 'bot', 
+          content: `Based on your search for "${searchQuery}", I've found the perfect tool for you! ${bestTool.name} might be exactly what you need. Would you like to know more about its features?` 
+        }]);
+      } else {
+        setMessages([{ 
+          type: 'bot', 
+          content: `I couldn't find any tools matching "${searchQuery}". Please try a different search term.` 
+        }]);
+      }
       
     } catch (error) {
       console.error('Error searching AI tools:', error);
       setMessages([{ 
         type: 'bot', 
-        content: 'Sorry, I encountered an error while searching for AI tools. Please try a different query or try again later.' 
+        content: 'Sorry, I encountered an error while searching for tools. Please try a different query or try again later.' 
       }]);
     } finally {
       setIsProcessing(false);
@@ -257,17 +172,19 @@ function App() {
 
   // Function to handle thumbnail click
   const handleThumbnailClick = (index: number) => {
-    setActiveScreenshot(index);
+    if (foundTool?.screenshots) {
+      setActiveScreenshot(index);
+    }
   };
 
   // Function to navigate screenshots
   const navigateScreenshots = (direction: 'prev' | 'next') => {
-    if (!foundTool) return;
+    if (!foundTool?.screenshots) return;
     
     if (direction === 'prev') {
-      setActiveScreenshot(prev => (prev > 0 ? prev - 1 : foundTool.screenshots.length - 1));
+      setActiveScreenshot(prev => (prev > 0 ? prev - 1 : foundTool.screenshots!.length - 1));
     } else {
-      setActiveScreenshot(prev => (prev < foundTool.screenshots.length - 1 ? prev + 1 : 0));
+      setActiveScreenshot(prev => (prev < foundTool.screenshots!.length - 1 ? prev + 1 : 0));
     }
   };
 
@@ -417,7 +334,7 @@ function App() {
                         )}
                           
                         {/* Screenshots Gallery Section */}
-                        {foundTool.screenshots && foundTool.screenshots.length > 0 && (
+                        {foundTool?.screenshots && foundTool.screenshots.length > 0 && (
                           <div className="mb-8">
                             <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
                               <div className="p-1.5 bg-white/10 rounded-md">
@@ -439,37 +356,7 @@ function App() {
                                   className="w-full aspect-video object-cover rounded-xl transition-transform duration-500 hover:scale-105"
                                   onClick={() => setShowGalleryModal(true)}
                                 />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                  <button className="bg-white/20 backdrop-blur-md p-2 rounded-full">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
-                                      <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"></path>
-                                    </svg>
-                                  </button>
-                                </div>
                               </div>
-
-                              {/* Navigation Arrows */}
-                              {foundTool.screenshots.length > 1 && (
-                                <>
-                                  <button 
-                                    onClick={() => navigateScreenshots('prev')}
-                                    className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/60 backdrop-blur-md p-2 rounded-full border border-white/10 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                                  >
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                      <polyline points="15 18 9 12 15 6"></polyline>
-                                    </svg>
-                                  </button>
-                                  <button 
-                                    onClick={() => navigateScreenshots('next')}
-                                    className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/60 backdrop-blur-md p-2 rounded-full border border-white/10 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                                  >
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                      <polyline points="9 18 15 12 9 6"></polyline>
-                                    </svg>
-                                  </button>
-                                </>
-                              )}
                             </div>
 
                             {/* Thumbnails */}
@@ -593,7 +480,7 @@ function App() {
                               {/* Features Content */}
                               {expandedSection === 'features' && (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                  {foundTool.features.map((feature, index) => (
+                                  {foundTool.features?.map((feature, index) => (
                                     <motion.div
                                       key={index}
                                       initial={{ opacity: 0, y: 20 }}
@@ -621,7 +508,7 @@ function App() {
                               {/* Use Cases Content */}
                               {expandedSection === 'useCases' && (
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                  {foundTool.useCases.map((useCase, index) => (
+                                  {foundTool.useCases?.map((useCase, index) => (
                                     <motion.div
                                       key={index}
                                       initial={{ opacity: 0, scale: 0.9 }}
@@ -741,12 +628,12 @@ function App() {
                                             />
                                           ))}
                                         </div>
-                                        <p className="text-gray-300">Based on {foundTool.reviews.length} reviews</p>
+                                        <p className="text-gray-300">Based on {foundTool.reviews?.length} reviews</p>
                                       </div>
                                     </div>
                                   </div>
                                   <div className="space-y-4">
-                                    {foundTool.reviews.map((review, index) => (
+                                    {foundTool.reviews?.map((review, index) => (
                                       <motion.div 
                                         key={index} 
                                         initial={{ opacity: 0 }}
@@ -794,7 +681,7 @@ function App() {
                                       <span>Pros</span>
                                     </h4>
                                     <ul className="space-y-3">
-                                      {foundTool.pros.map((pro, index) => (
+                                      {foundTool.pros?.map((pro, index) => (
                                         <motion.li 
                                           key={index} 
                                           initial={{ opacity: 0, x: -10 }}
@@ -823,7 +710,7 @@ function App() {
                                       <span>Cons</span>
                                     </h4>
                                     <ul className="space-y-3">
-                                      {foundTool.cons.map((con, index) => (
+                                      {foundTool.cons?.map((con, index) => (
                                         <motion.li 
                                           key={index}
                                           initial={{ opacity: 0, x: 10 }}
@@ -848,7 +735,7 @@ function App() {
                                 <div>
                                   <p className="text-gray-300 mb-4">Here are some alternatives to {foundTool.name} you might want to consider:</p>
                                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    {foundTool.alternatives.map((alt, index) => (
+                                    {foundTool.alternatives?.map((alt, index) => (
                                       <motion.a 
                                         key={index}
                                         href={alt.url}
@@ -893,9 +780,9 @@ function App() {
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.2 }}
-                      className="lg:w-1/4 h-full flex flex-col backdrop-blur-xl bg-black/40 rounded-2xl border border-white/10 shadow-lg overflow-hidden"
+                      className="lg:w-1/4 h-full flex flex-col backdrop-blur-xl bg-black/30 rounded-2xl border border-white/10 shadow-lg overflow-hidden"
                     >
-                      <div className="p-3 border-b border-white/10 bg-black/50">
+                      <div className="p-3 border-b border-white/10 bg-black/40">
                         <h3 className="text-lg font-semibold text-white">Ask AI Assistant</h3>
                       </div>
                       
@@ -924,8 +811,8 @@ function App() {
                               transition={{ type: "spring", stiffness: 260, damping: 20 }}
                               className={`max-w-[85%] rounded-xl px-3 py-2 text-sm ${
                                 message.type === 'user' 
-                                  ? 'bg-black/60 text-white border border-white/10 backdrop-blur-md' 
-                                  : 'bg-white/10 text-gray-100 border border-white/5 backdrop-blur-sm'
+                                  ? 'bg-black/40 text-white border border-white/10 backdrop-blur-md' 
+                                  : 'bg-white/5 text-gray-100 border border-white/5 backdrop-blur-sm'
                               }`}
                             >
                               {message.content}
@@ -945,7 +832,7 @@ function App() {
                         )}
                       </div>
                       
-                      <div className="p-3 border-t border-white/10 bg-black/50">
+                      <div className="p-3 border-t border-white/10 bg-black/40">
                         <div className="flex gap-2">
                           <input
                             type="text"
@@ -953,7 +840,7 @@ function App() {
                             onChange={(e) => setCurrentMessage(e.target.value)}
                             onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
                             placeholder="Ask about this tool..."
-                            className="flex-1 px-3 py-2 rounded-lg bg-black/60 border border-white/10 text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-transparent transition-all duration-200"
+                            className="flex-1 px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-transparent transition-all duration-200"
                           />
                           <motion.button
                             whileHover={{ scale: 1.05 }}
@@ -983,7 +870,7 @@ function App() {
 
       {/* Image Gallery Modal */}
       <AnimatePresence mode="wait">
-        {showGalleryModal && foundTool && (
+        {showGalleryModal && foundTool?.screenshots && foundTool.screenshots.length > 0 && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -1006,49 +893,6 @@ function App() {
                   alt={`${foundTool.name} screenshot ${activeScreenshot + 1}`}
                   className="rounded-lg max-h-[80vh] object-contain"
                 />
-                
-                {/* Navigation controls */}
-                <button 
-                  onClick={() => navigateScreenshots('prev')}
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/60 backdrop-blur-md p-3 rounded-full border border-white/10 text-white hover:bg-black/80 transition-colors duration-200"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="15 18 9 12 15 6"></polyline>
-                  </svg>
-                </button>
-                <button 
-                  onClick={() => navigateScreenshots('next')}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/60 backdrop-blur-md p-3 rounded-full border border-white/10 text-white hover:bg-black/80 transition-colors duration-200"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="9 18 15 12 9 6"></polyline>
-                  </svg>
-                </button>
-              </div>
-              
-              {/* Close button */}
-              <button 
-                onClick={() => setShowGalleryModal(false)}
-                className="absolute top-4 right-4 bg-black/60 backdrop-blur-md p-2 rounded-full border border-white/10 text-white hover:bg-black/80 transition-colors duration-200"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
-              
-              {/* Indicator of current image */}
-              <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2">
-                {foundTool.screenshots.map((_, index) => (
-                  <button 
-                    key={index}
-                    onClick={() => setActiveScreenshot(index)}
-                    className={`w-3 h-3 rounded-full ${
-                      activeScreenshot === index ? 'bg-white' : 'bg-white/30'
-                    }`}
-                    aria-label={`View screenshot ${index + 1}`}
-                  />
-                ))}
               </div>
             </motion.div>
           </motion.div>
