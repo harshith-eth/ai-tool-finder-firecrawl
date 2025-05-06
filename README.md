@@ -28,56 +28,50 @@
 ## 🔍 How It Works
 
 ```mermaid
-graph TD
-    %% Nodes
-    User((User))
-    Search[Search Query]
-    Frontend[AI Tool Finder Frontend]
-    API[Firecrawl API]
-    Extract[Content Extraction]
-    Directory1[AI Directory 1]
-    Directory2[AI Directory 2]
-    DirectoryN[AI Directory N]
-    Processor[Data Processor]
-    DB[(Tool Database)]
-    Results[Results Display]
-    Filter[Filter & Sort]
-    Details[Detailed Tool View]
+%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '16px', 'fontFamily': 'Arial', 'primaryColor': '#3498db', 'primaryTextColor': '#fff', 'primaryBorderColor': '#2374ab', 'lineColor': '#000000', 'textColor': '#000000', 'fontSize': '20px' }}}%%
+
+flowchart TD
+    %% Main Nodes
+    User((👤 USER)):::user
+    Search[/🔍 SEARCH QUERY\]:::input
+    Frontend[📱 AI TOOL FINDER]:::processing
+    API[🔥 FIRECRAWL API]:::processing
+    Extract[🔄 CONTENT EXTRACTION]:::data
+    Directory1[📂 AI DIRECTORY 1]:::source
+    Directory2[📂 AI DIRECTORY 2]:::source
+    DirectoryN[📂 AI DIRECTORY N]:::source
+    Processor[⚙️ DATA PROCESSOR]:::processing
+    DB[(💾 TOOL DATABASE)]:::data
+    Results[📊 RESULTS DISPLAY]:::output
+    Filter[🔍 FILTER & SORT]:::input
+    Details[📋 DETAILED TOOL VIEW]:::output
     
-    %% Connections
-    User -->|Types query| Search
-    Search -->|Submits| Frontend
-    Frontend -->|Requests data| API
-    API -->|Scrapes| Directory1
-    API -->|Scrapes| Directory2
-    API -->|Scrapes| DirectoryN
-    Directory1 -->|Raw HTML| Extract
-    Directory2 -->|Raw HTML| Extract
-    DirectoryN -->|Raw HTML| Extract
-    Extract -->|Structured data| Processor
-    Processor -->|Indexed tools| DB
-    DB -->|Relevant tools| Results
-    Results -->|Displays to| User
-    User -->|Applies filters| Filter
-    Filter -->|Updates| Results
-    User -->|Selects tool| Details
-    Details -->|Shows| User
+    %% Connections with clear text
+    User -->|"TYPES QUERY"| Search
+    Search -->|"SUBMITS"| Frontend
+    Frontend -->|"REQUESTS DATA"| API
+    API -->|"SCRAPES"| Directory1
+    API -->|"SCRAPES"| Directory2
+    API -->|"SCRAPES"| DirectoryN
+    Directory1 -->|"RAW HTML"| Extract
+    Directory2 -->|"RAW HTML"| Extract
+    DirectoryN -->|"RAW HTML"| Extract
+    Extract -->|"STRUCTURED DATA"| Processor
+    Processor -->|"INDEXED TOOLS"| DB
+    DB -->|"RELEVANT TOOLS"| Results
+    Results -->|"DISPLAYS TO"| User
+    User -->|"APPLIES FILTERS"| Filter
+    Filter -->|"UPDATES"| Results
+    User -->|"SELECTS TOOL"| Details
+    Details -->|"SHOWS"| User
     
-    %% Styling
-    classDef user fill:#f9f,stroke:#333,stroke-width:2px
-    classDef input fill:#bbf,stroke:#333,stroke-width:2px
-    classDef processing fill:#fbb,stroke:#333,stroke-width:2px
-    classDef source fill:#bfb,stroke:#333,stroke-width:2px
-    classDef data fill:#fbf,stroke:#333,stroke-width:2px
-    classDef output fill:#bff,stroke:#333,stroke-width:2px
-    classDef action fill:#ffb,stroke:#333,stroke-width:2px
-    
-    class User user
-    class Search,Filter input
-    class Frontend,API,Processor processing
-    class Directory1,Directory2,DirectoryN source
-    class Extract,DB data
-    class Results,Details output
+    %% Styling with high contrast
+    classDef user fill:#9b59b6,stroke:#000,stroke-width:3px,color:#fff,font-weight:bold
+    classDef input fill:#3498db,stroke:#000,stroke-width:2px,color:#fff,font-weight:bold
+    classDef processing fill:#e74c3c,stroke:#000,stroke-width:2px,color:#fff,font-weight:bold
+    classDef source fill:#2ecc71,stroke:#000,stroke-width:2px,color:#000,font-weight:bold
+    classDef data fill:#f39c12,stroke:#000,stroke-width:2px,color:#000,font-weight:bold
+    classDef output fill:#1abc9c,stroke:#000,stroke-width:2px,color:#000,font-weight:bold
 ```
 
 ## 🚀 Getting Started
