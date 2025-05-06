@@ -16,7 +16,7 @@ A modern web application that helps users find the most relevant AI tools based 
 - **Frontend**: React, TypeScript
 - **Styling**: Tailwind CSS
 - **Animations**: Framer Motion
-- **API**: Firecrawl (API key: fc-d5ddb525949044f8bd29d2e3688e4778)
+- **API**: Firecrawl
 
 ## Getting Started
 
@@ -40,14 +40,21 @@ A modern web application that helps users find the most relevant AI tools based 
    yarn
    ```
 
-3. Start the development server
+3. Create a `.env` file in the root directory and add your API keys:
+   ```
+   VITE_FIRECRAWL_API_KEY=your_firecrawl_api_key_here
+   VITE_AZURE_API_KEY=your_azure_api_key_here
+   VITE_AZURE_ENDPOINT=your_azure_endpoint_here
+   ```
+
+4. Start the development server
    ```bash
    npm run dev
    # or
    yarn dev
    ```
 
-4. Build for production
+5. Build for production
    ```bash
    npm run build
    # or

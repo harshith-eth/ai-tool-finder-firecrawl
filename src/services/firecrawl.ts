@@ -9,7 +9,7 @@ import type {
 } from '../types/firecrawl';
 
 // Initialize Firecrawl client
-const FIRECRAWL_API_KEY = process.env.VITE_FIRECRAWL_API_KEY || '';
+const FIRECRAWL_API_KEY = import.meta.env.VITE_FIRECRAWL_API_KEY || '';
 
 if (!FIRECRAWL_API_KEY) {
   console.warn('Firecrawl API key not found in environment variables');
