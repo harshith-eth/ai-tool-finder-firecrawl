@@ -1,6 +1,7 @@
-import React, { useState, useRef, useEffect, memo } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, Search } from 'lucide-react';
+import { TypeAnimation } from 'react-type-animation';
 
 // Define the placeholder animation variants
 const placeholderVariants = {
@@ -25,69 +26,6 @@ const placeholderVariants = {
     }
   }
 };
-
-// Create a memoized component for the animated placeholder text with typewriter effect
-const AnimatedPlaceholder = memo(({ text }: { text: string }) => {
-  const [displayText, setDisplayText] = useState("");
-  const [cursor, setCursor] = useState(true);
-  const [isTyping, setIsTyping] = useState(true);
-  const [isFullyTyped, setIsFullyTyped] = useState(false);
-  
-  // Typewriter effect - simplified and more reliable
-  useEffect(() => {
-    setDisplayText("");
-    setIsTyping(true);
-    setIsFullyTyped(false);
-    let i = 0;
-    
-    // Create a single reliable interval for typing all characters
-    const typeInterval = setInterval(() => {
-      if (i < text.length) {
-        setDisplayText(text.substring(0, i + 1));
-        i++;
-      } else {
-        clearInterval(typeInterval);
-        setIsTyping(false);
-        setIsFullyTyped(true);
-      }
-    }, 40); // Slightly faster typing
-    
-    // Ensure cleanup on component unmount or text change
-    return () => {
-      clearInterval(typeInterval);
-    };
-  }, [text]);
-  
-  // Blinking cursor effect - blinks faster during typing, slower when waiting
-  useEffect(() => {
-    const cursorInterval = setInterval(() => {
-      setCursor(c => !c);
-    }, isTyping ? 330 : 530);
-    
-    return () => clearInterval(cursorInterval);
-  }, [isTyping]);
-  
-  return (
-    <motion.div
-      variants={placeholderVariants}
-      initial="initial"
-      animate="animate"
-      exit="exit"
-      className="text-gray-400 origin-left whitespace-nowrap overflow-hidden text-ellipsis flex"
-    >
-      <span>{displayText}</span>
-      <span 
-        className={`${cursor ? 'opacity-100' : 'opacity-0'} ml-0.5 transition-opacity`}
-        style={{ 
-          background: 'linear-gradient(to right, #3b82f6, #10b981)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          fontWeight: 'bold'
-        }}
-      >|</span>
-    </motion.div>
-  );
-});
 
 // Define suggestion button variants
 const suggestionVariants = {
@@ -135,24 +73,22 @@ interface SearchInputProps {
 export const SearchInput: React.FC<SearchInputProps> = ({ onSearch, isProcessing }) => {
   const [query, setQuery] = useState('');
   const [isInputFocused, setIsInputFocused] = useState(false);
-  const [currentPlaceholderIndex, setCurrentPlaceholderIndex] = useState(0);
-  const [changingPlaceholder, setChangingPlaceholder] = useState(false);
   
   // Reference to search input
   const searchInputRef = useRef<HTMLInputElement>(null);
   
-  // Sample placeholder suggestions
-  const placeholderSuggestions = [
-    "Find me a tool that can generate realistic AI images",
-    "What's the best AI for writing marketing copy?",
-    "I need an AI assistant for coding in Python",
-    "Looking for a ChatGPT alternative with better features",
-    "Show me tools that can analyze financial data",
-    "I want an AI that can edit videos automatically",
-    "Need a tool that can transcribe and summarize meetings",
-    "Find an AI for creating professional presentations",
-    "What tools help with social media content creation?",
-    "I need an AI voice generator for my podcast"
+  // Sample placeholder suggestions with proper typing sequence
+  const placeholderSequence = [
+    'Find me a tool that can generate realistic AI images', 
+    3000,
+    'What\'s the best AI for writing marketing copy?',
+    3000,
+    'I need an AI assistant for coding in Python',
+    3000,
+    'Looking for a ChatGPT alternative with better features',
+    3000,
+    'Show me tools that can analyze financial data',
+    3000
   ];
   
   // Define suggestion buttons
@@ -164,45 +100,15 @@ export const SearchInput: React.FC<SearchInputProps> = ({ onSearch, isProcessing
     "Data analysis"
   ];
   
-  // Improved placeholder rotation logic
-  useEffect(() => {
-    // Initial delay before starting rotation
-    const initialDelay = setTimeout(() => {
-      // Set up the rotation interval
-      const rotationInterval = setInterval(() => {
-        if (!changingPlaceholder) {
-          setChangingPlaceholder(true);
-          
-          // Wait a bit before changing to next placeholder to ensure smooth exit animation
-          setTimeout(() => {
-            setCurrentPlaceholderIndex(prevIndex => 
-              prevIndex === placeholderSuggestions.length - 1 ? 0 : prevIndex + 1
-            );
-            
-            // Reset the changing flag after a short delay to allow animations to complete
-            setTimeout(() => {
-              setChangingPlaceholder(false);
-            }, 300);
-          }, 500);
-        }
-      }, 9000); // Increased to 9 seconds for longer display time
-      
-      return () => clearInterval(rotationInterval);
-    }, 2000); // Slightly longer initial delay
-    
-    return () => clearTimeout(initialDelay);
-  }, [changingPlaceholder, placeholderSuggestions.length]);
-  
   // Function to handle search, including from Enter key
   const handleSearch = () => {
     if (!query.trim() || isProcessing) return;
-    onSearch(query); // Call the parent component's search function
+    onSearch(query);
   };
   
   // Function to set a suggestion as the query
   const setSearchSuggestion = (suggestion: string) => {
     setQuery(suggestion);
-    // Focus the input after setting suggestion
     if (searchInputRef.current) {
       searchInputRef.current.focus();
     }
@@ -302,16 +208,22 @@ export const SearchInput: React.FC<SearchInputProps> = ({ onSearch, isProcessing
               onBlur={() => setIsInputFocused(false)}
               ref={searchInputRef}
               className="w-full px-4 py-3 bg-transparent border border-white/10 text-white focus:outline-none focus:ring-0 focus:border-white/20 transition-all duration-300"
+              placeholder={query ? '' : undefined}
             />
             {!query && (
               <div className="absolute inset-0 pointer-events-none flex items-center px-4">
-                <div className="relative w-full text-left">
-                  <AnimatePresence mode="wait">
-                    <AnimatedPlaceholder 
-                      key={currentPlaceholderIndex} 
-                      text={placeholderSuggestions[currentPlaceholderIndex]} 
-                    />
-                  </AnimatePresence>
+                <div className="text-gray-400">
+                  <TypeAnimation
+                    sequence={placeholderSequence}
+                    wrapper="span"
+                    speed={50}
+                    repeat={Infinity}
+                    cursor={true}
+                    style={{
+                      display: 'inline-block',
+                      color: '#9CA3AF'
+                    }}
+                  />
                 </div>
               </div>
             )}

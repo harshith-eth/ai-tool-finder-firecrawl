@@ -1,8 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Globe, Send, Loader2, ArrowLeft, Search, Star, ExternalLink, ThumbsUp, ThumbsDown, Check, X, DollarSign, Users, Code, Zap, Heart, ChevronDown, ChevronUp } from 'lucide-react';
+import { Globe, Send, Loader2, ArrowLeft, Star, ExternalLink, ThumbsUp, ThumbsDown, Check, X, DollarSign, Users, Code, Zap, Heart, ChevronDown, ChevronUp } from 'lucide-react';
 import FirecrawlApp from '@mendable/firecrawl-js';
 import ParticlesBackground from './background';
+import SearchInput from './components/SearchInput';
 
 interface ToolPricingTier {
   name: string;
@@ -51,60 +52,6 @@ function App() {
   const [activeScreenshot, setActiveScreenshot] = useState<number>(0);
   const [showGalleryModal, setShowGalleryModal] = useState<boolean>(false);
   
-  // Add rotating placeholder suggestions
-  const placeholderSuggestions = [
-    "I need an AI tool for writing blog posts",
-    "Looking for an alternative to ChatGPT",
-    "Find me a tool for generating images",
-    "I want an AI for data analysis",
-    "Show me the best AI coding assistants",
-    "Need a tool for video editing with AI",
-    "Looking for AI to help with customer support",
-    "Find an AI that can transcribe meetings",
-    "Need an AI translation tool",
-    "Looking for a voice cloning AI"
-  ];
-  
-  const [currentPlaceholderIndex, setCurrentPlaceholderIndex] = useState(0);
-  
-  // Reference to search input
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  
-  // Rotate placeholders every 3 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentPlaceholderIndex(prev => 
-        prev === placeholderSuggestions.length - 1 ? 0 : prev + 1
-      );
-    }, 3000);
-    
-    return () => clearInterval(interval);
-  }, [placeholderSuggestions.length]);
-  
-  // Define suggestion buttons
-  const suggestionButtons = [
-    "Content creation",
-    "Image generation",
-    "Video editing",
-    "ChatGPT alternative",
-    "Data analysis"
-  ];
-  
-  // Function to handle search, including from Enter key
-  const handleSearch = () => {
-    if (!query.trim() || isProcessing) return;
-    searchAITool();
-  };
-  
-  // Function to set a suggestion as the query
-  const setSearchSuggestion = (suggestion: string) => {
-    setQuery(suggestion);
-    // Focus the input after setting suggestion
-    if (searchInputRef.current) {
-      searchInputRef.current.focus();
-    }
-  };
-
   // Initialize Firecrawl with API key
   const firecrawl = new FirecrawlApp({
     apiKey: "fc-d5ddb525949044f8bd29d2e3688e4778"
@@ -133,9 +80,10 @@ function App() {
     setExpandedSection(section);
   };
 
-  const searchAITool = async () => {
-    if (!query) return;
+  const searchAITool = async (searchQuery: string) => {
+    if (!searchQuery) return;
     
+    setQuery(searchQuery); // Update the query state
     setIsProcessing(true);
     try {
       // For MVP testing - simulate processing delay
@@ -143,7 +91,7 @@ function App() {
       await new Promise(resolve => setTimeout(resolve, 3000));
       
       // In production implementation:
-      // const searchResult = await firecrawl.search(query, {
+      // const searchResult = await firecrawl.search(searchQuery, {
       //   limit: 15,
       //   scrapeOptions: {
       //     formats: ["markdown"],
@@ -261,7 +209,7 @@ function App() {
       
       setMessages([{ 
         type: 'bot', 
-        content: `Based on your search for "${query}", I've found the perfect AI tool for you! Preswald AI is an AI agent for building data apps, dashboards and reports. Would you like to know more about its features?` 
+        content: `Based on your search for "${searchQuery}", I've found the perfect AI tool for you! Preswald AI is an AI agent for building data apps, dashboards and reports. Would you like to know more about its features?` 
       }]);
       
     } catch (error) {
@@ -299,8 +247,8 @@ function App() {
           content: `${foundTool.name} has a free tier for individuals and a premium tier starting at $29/month for teams with advanced features. Check their website for current pricing details.` 
         }]);
       } else {
-    setMessages(prev => [...prev, { 
-      type: 'bot', 
+        setMessages(prev => [...prev, { 
+          type: 'bot', 
           content: `${foundTool.name} is a great choice for your needs. You can visit their website at ${foundTool.url} to learn more and get started. Is there anything specific about this tool you'd like to know?` 
         }]);
       }
@@ -330,136 +278,69 @@ function App() {
           showContent={false} 
           particleCount={1500} 
           className="h-full w-full"
+          key="particles-background"
         />
       </div>
       
       <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
-          <AnimatePresence mode="wait">
+        <AnimatePresence mode="wait" custom={isResultReady}>
           {!isResultReady ? (
-              <motion.div 
+            <motion.div 
               key="search-screen"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20, transition: { duration: 0.2 } }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20, transition: { duration: 0.3, ease: [0.22, 1, 0.36, 1] } }}
+              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
               className="w-full max-w-4xl backdrop-blur-xl bg-black/40 rounded-2xl shadow-2xl overflow-hidden mb-4 border border-white/10"
-              >
+            >
               <div className="p-8">
-                <motion.div 
-                  initial={{ scale: 0.9 }}
-                  animate={{ 
-                    scale: [0.9, 1.05, 1],
-                  }}
-                  transition={{ 
-                    duration: 1.2,
-                    ease: "easeInOut",
-                    repeat: Infinity,
-                    repeatDelay: 3
-                  }}
-                  className="flex items-center justify-center mb-8"
-                >
-                  <Search className="w-12 h-12 text-white" />
-                </motion.div>
-                <motion.h1 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="text-3xl font-bold text-center text-white mb-2"
-                >
-                  Find the Perfect AI Tool
-                </motion.h1>
-                <motion.p 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="text-center text-gray-300 mb-8"
-                >
-                  We'll search 200+ AI directories to find exactly what you need
-                </motion.p>
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
-                  className="flex gap-2"
-                >
-                  <input
-                    type="text"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                    placeholder={placeholderSuggestions[currentPlaceholderIndex]}
-                    ref={searchInputRef}
-                    className="flex-1 px-4 py-3 rounded-lg bg-black/60 border border-white/10 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent transition-all duration-200"
-                  />
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleSearch}
-                    disabled={isProcessing}
-                    className="px-6 py-3 bg-black hover:bg-black/80 text-white rounded-lg font-medium flex items-center gap-2 disabled:opacity-70 transition-all duration-200 border border-white/10"
-                  >
-                    {isProcessing ? (
-                      <motion.div className="flex items-center gap-2">
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        <span>Searching...</span>
-                      </motion.div>
-                    ) : (
-                      'Find Tool'
-                    )}
-                  </motion.button>
-                </motion.div>
-                
-                {/* Search suggestions */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 }}
-                  className="mt-4 flex flex-wrap gap-2 justify-center"
-                >
-                  {suggestionButtons.map((suggestion, index) => (
-                    <motion.button
-                      key={suggestion}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ 
-                        opacity: 1, 
-                        scale: 1,
-                        transition: { delay: 0.5 + index * 0.1 }
-                      }}
-                      whileHover={{ scale: 1.05, backgroundColor: 'rgba(255, 255, 255, 0.15)' }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => setSearchSuggestion(suggestion)}
-                      className="px-3 py-1.5 text-sm bg-white/5 hover:bg-white/10 text-white rounded-full border border-white/10 transition-all duration-200"
-                    >
-                      {suggestion}
-                    </motion.button>
-                  ))}
-                </motion.div>
+                <SearchInput onSearch={searchAITool} isProcessing={isProcessing} />
               </div>
-              </motion.div>
-            ) : (
-              <motion.div 
+            </motion.div>
+          ) : (
+            <motion.div 
               key="result-screen"
               initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
+              animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              transition={{ 
+                type: "spring", 
+                stiffness: 330, 
+                damping: 24,
+                mass: 0.8 
+              }}
               className="w-full h-full p-4 md:p-6 flex flex-col"
             >
               {foundTool && (
                 <div className="flex flex-col h-full">
                   {/* Header with back button */}
                   <motion.div 
-                    initial={{ opacity: 0, y: -20 }}
+                    initial={{ opacity: 0, y: -15 }}
                     animate={{ opacity: 1, y: 0 }}
+                    transition={{ 
+                      type: "spring",
+                      stiffness: 300,
+                      damping: 30,
+                      delay: 0.1
+                    }}
                     className="flex items-center mb-4"
                   >
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                    <motion.button
+                      whileHover={{ 
+                        scale: 1.08,
+                        backgroundColor: 'rgba(255, 255, 255, 0.15)'
+                      }}
+                      whileTap={{ scale: 0.92 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 400,
+                        damping: 15
+                      }}
                       onClick={resetSearch}
                       className="p-2 hover:bg-white/10 rounded-full transition-colors duration-200 bg-black/40 backdrop-blur-md border border-white/10"
-                  >
-                    <ArrowLeft className="w-5 h-5 text-gray-300" />
-                  </motion.button>
+                    >
+                      <ArrowLeft className="w-5 h-5 text-gray-300" />
+                    </motion.button>
                     <h2 className="text-lg font-semibold text-white ml-3">Perfect AI Tool for: {query}</h2>
                   </motion.div>
 
@@ -652,14 +533,24 @@ function App() {
                                   key={section}
                                   whileHover={{ y: -2 }}
                                   whileTap={{ y: 0 }}
+                                  transition={{
+                                    type: "spring",
+                                    stiffness: 400,
+                                    damping: 17
+                                  }}
                                   onClick={() => toggleSection(section)}
-                                  className={`flex items-center gap-2 px-4 py-3 whitespace-nowrap transition-all duration-200 border-b-2 ${
+                                  className={`flex items-center gap-2 px-4 py-3 whitespace-nowrap transition-all duration-300 border-b-2 ${
                                     expandedSection === section 
                                       ? 'text-white border-white' 
                                       : 'text-gray-400 border-transparent hover:text-gray-200'
                                   }`}
                                 >
-                                  {getIcon(section)}
+                                  <motion.div 
+                                    animate={expandedSection === section ? { scale: 1.1 } : { scale: 1 }}
+                                    transition={{ type: "spring", stiffness: 300, damping: 15 }}
+                                  >
+                                    {getIcon(section)}
+                                  </motion.div>
                                   <span>{displayNames[section]}</span>
                                 </motion.button>
                               );
@@ -669,30 +560,33 @@ function App() {
 
                         {/* Dynamic Content Based on Selected Tab */}
                         <div className="relative min-h-[300px] overflow-hidden">
-                          <AnimatePresence mode="wait" initial={false}>
+                          <AnimatePresence mode="popLayout" initial={false}>
                             <motion.div
                               key={expandedSection}
                               initial={{ 
                                 opacity: 0, 
-                                x: tabDirection * 20,
+                                x: tabDirection * 15,
+                                filter: "blur(4px)",
                                 position: previousSection ? 'absolute' : 'relative'
                               }}
                               animate={{ 
                                 opacity: 1,
                                 x: 0,
+                                filter: "blur(0px)",
                                 position: 'relative'
                               }}
                               exit={{ 
                                 opacity: 0, 
-                                x: tabDirection * -20,
+                                x: tabDirection * -15,
+                                filter: "blur(4px)",
                                 position: 'absolute',
                                 width: '100%',
                               }}
                               transition={{ 
                                 type: "spring", 
-                                stiffness: 300, 
-                                damping: 30,
-                                mass: 0.8
+                                stiffness: 270, 
+                                damping: 25,
+                                mass: 0.75
                               }}
                               className="w-full"
                             >
@@ -1003,41 +897,41 @@ function App() {
                     >
                       <div className="p-3 border-b border-white/10 bg-black/50">
                         <h3 className="text-lg font-semibold text-white">Ask AI Assistant</h3>
-                </div>
+                      </div>
                       
                       <div className="flex-1 overflow-auto p-3 space-y-4">
-                  {messages.map((message, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, x: message.type === 'user' ? 20 : -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.3 }}
+                        {messages.map((message, index) => (
+                          <motion.div
+                            key={index}
+                            initial={{ opacity: 0, x: message.type === 'user' ? 20 : -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.3 }}
                             className={`flex gap-2 ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
-                      {message.type === 'bot' && (
-                        <motion.div
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          transition={{ type: "spring", stiffness: 260, damping: 20 }}
+                          >
+                            {message.type === 'bot' && (
+                              <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{ type: "spring", stiffness: 260, damping: 20 }}
                                 className="w-7 h-7 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/5 shrink-0"
-                        >
+                              >
                                 <span role="img" aria-label="fire" className="text-sm">🔥</span>
-                        </motion.div>
-                      )}
-                      <motion.div 
-                        initial={{ scale: 0.9, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{ type: "spring", stiffness: 260, damping: 20 }}
+                              </motion.div>
+                            )}
+                            <motion.div 
+                              initial={{ scale: 0.9, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              transition={{ type: "spring", stiffness: 260, damping: 20 }}
                               className={`max-w-[85%] rounded-xl px-3 py-2 text-sm ${
-                          message.type === 'user' 
+                                message.type === 'user' 
                                   ? 'bg-black/60 text-white border border-white/10 backdrop-blur-md' 
                                   : 'bg-white/10 text-gray-100 border border-white/5 backdrop-blur-sm'
-                        }`}
-                      >
-                        {message.content}
-                      </motion.div>
-                    </motion.div>
-                  ))}
+                              }`}
+                            >
+                              {message.content}
+                            </motion.div>
+                          </motion.div>
+                        ))}
 
                         {messages.length === 0 && (
                           <div className="h-full flex items-center justify-center text-center p-4">
@@ -1049,35 +943,35 @@ function App() {
                             </div>
                           </div>
                         )}
-                </div>
+                      </div>
                       
                       <div className="p-3 border-t border-white/10 bg-black/50">
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={currentMessage}
-                      onChange={(e) => setCurrentMessage(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={currentMessage}
+                            onChange={(e) => setCurrentMessage(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
                             placeholder="Ask about this tool..."
                             className="flex-1 px-3 py-2 rounded-lg bg-black/60 border border-white/10 text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-transparent transition-all duration-200"
-                    />
-                    <motion.button
+                          />
+                          <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
-                      onClick={sendMessage}
+                            onClick={sendMessage}
                             className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors duration-200 border border-white/10 backdrop-blur-sm"
-                    >
+                          >
                             <Send className="w-4 h-4" />
-                    </motion.button>
+                          </motion.button>
                         </div>
                       </div>
                     </motion.div>
                   </div>
                 </div>
               )}
-              </motion.div>
-            )}
-          </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
         
         <div className="text-center text-white space-y-1 mt-3">
           <p className="text-sm">Built with ❤️ for the open source community</p>
@@ -1088,7 +982,7 @@ function App() {
       </div>
 
       {/* Image Gallery Modal */}
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         {showGalleryModal && foundTool && (
           <motion.div
             initial={{ opacity: 0 }}

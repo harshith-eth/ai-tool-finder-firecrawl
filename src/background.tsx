@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, memo } from "react"
 import { motion } from "framer-motion"
 
 // Utility function to replace cn
@@ -112,7 +112,8 @@ interface Particle {
   color: string
 }
 
-export default function ParticlesBackground({
+// Memoize the component to prevent re-renders
+const ParticlesBackground = memo(({
   title = "Particles Background",
   subtitle = "Make your website stand out",
   particleCount = 2000,
@@ -120,7 +121,7 @@ export default function ParticlesBackground({
   particleSize = { min: 0.5, max: 3 },
   className,
   showContent = true,
-}: CyberBackgroundProps) {
+}: CyberBackgroundProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const noise = createNoise()
 
@@ -207,7 +208,7 @@ export default function ParticlesBackground({
 
     window.addEventListener("resize", handleResize)
     return () => window.removeEventListener("resize", handleResize)
-  }, [particleCount, noiseIntensity, particleSize, noise])
+  }, [particleCount, noiseIntensity, particleSize, noise]) // Only rerender if these props change
 
   return (
     <div className={cn("w-full h-full bg-black", className)}>
@@ -231,4 +232,9 @@ export default function ParticlesBackground({
       )}
     </div>
   )
-}
+})
+
+// Add displayName for debugging
+ParticlesBackground.displayName = 'ParticlesBackground'
+
+export default ParticlesBackground
