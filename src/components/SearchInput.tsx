@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, Search } from 'lucide-react';
 import { TypeAnimation } from 'react-type-animation';
+import { InteractiveHoverButton } from './FindTool';
 
 // Define the placeholder animation variants
 const placeholderVariants = {
@@ -230,7 +231,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({ onSearch, isProcessing
           </motion.div>
         </div>
         
-        <motion.button
+        <motion.div
           initial={{ scale: 0.98, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ 
@@ -239,25 +240,26 @@ export const SearchInput: React.FC<SearchInputProps> = ({ onSearch, isProcessing
             damping: 20,
             delay: 0.45
           }}
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.97 }}
-          onClick={handleSearch}
-          disabled={isProcessing}
-          className="px-6 py-3 bg-black hover:bg-black/80 text-white rounded-lg font-medium flex items-center gap-2 disabled:opacity-70 transition-all duration-200 border border-white/10"
         >
           {isProcessing ? (
-            <motion.div 
-              className="flex items-center gap-2"
+            <motion.button
+              className="px-6 py-3 bg-black/60 hover:bg-black/70 text-gray-200 rounded-lg font-medium flex items-center gap-2 disabled:opacity-70 transition-all duration-200 border border-white/10"
               animate={{ opacity: [0.6, 1] }}
               transition={{ duration: 0.8, repeat: Infinity, repeatType: "reverse" }}
+              disabled
             >
               <Loader2 className="w-5 h-5 animate-spin" />
               <span>Searching...</span>
-            </motion.div>
+            </motion.button>
           ) : (
-            'Find Tool'
+            <InteractiveHoverButton 
+              onClick={handleSearch}
+              logo={<Search className="w-5 h-5 text-gray-200" />}
+            >
+              Find Tool
+            </InteractiveHoverButton>
           )}
-        </motion.button>
+        </motion.div>
       </motion.div>
       
       {/* Search suggestions */}
