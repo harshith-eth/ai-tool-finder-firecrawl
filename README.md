@@ -29,20 +29,55 @@
 
 ```mermaid
 graph TD
-    A[User Query] --> B[AI Tool Finder Frontend]
-    B --> C[Firecrawl API]
-    C --> D[200+ AI Tool Directories]
-    D --> E[Crawl & Process Data]
-    E --> F[Return Structured Results]
-    F --> G[Display Results to User]
+    %% Nodes
+    User((User))
+    Search[Search Query]
+    Frontend[AI Tool Finder Frontend]
+    API[Firecrawl API]
+    Extract[Content Extraction]
+    Directory1[AI Directory 1]
+    Directory2[AI Directory 2]
+    DirectoryN[AI Directory N]
+    Processor[Data Processor]
+    DB[(Tool Database)]
+    Results[Results Display]
+    Filter[Filter & Sort]
+    Details[Detailed Tool View]
     
-    style A fill:#f9f,stroke:#333,stroke-width:2px
-    style B fill:#bbf,stroke:#333,stroke-width:2px
-    style C fill:#fbb,stroke:#333,stroke-width:2px
-    style D fill:#bfb,stroke:#333,stroke-width:2px
-    style E fill:#fbf,stroke:#333,stroke-width:2px
-    style F fill:#bff,stroke:#333,stroke-width:2px
-    style G fill:#ffb,stroke:#333,stroke-width:2px
+    %% Connections
+    User -->|Types query| Search
+    Search -->|Submits| Frontend
+    Frontend -->|Requests data| API
+    API -->|Scrapes| Directory1
+    API -->|Scrapes| Directory2
+    API -->|Scrapes| DirectoryN
+    Directory1 -->|Raw HTML| Extract
+    Directory2 -->|Raw HTML| Extract
+    DirectoryN -->|Raw HTML| Extract
+    Extract -->|Structured data| Processor
+    Processor -->|Indexed tools| DB
+    DB -->|Relevant tools| Results
+    Results -->|Displays to| User
+    User -->|Applies filters| Filter
+    Filter -->|Updates| Results
+    User -->|Selects tool| Details
+    Details -->|Shows| User
+    
+    %% Styling
+    classDef user fill:#f9f,stroke:#333,stroke-width:2px
+    classDef input fill:#bbf,stroke:#333,stroke-width:2px
+    classDef processing fill:#fbb,stroke:#333,stroke-width:2px
+    classDef source fill:#bfb,stroke:#333,stroke-width:2px
+    classDef data fill:#fbf,stroke:#333,stroke-width:2px
+    classDef output fill:#bff,stroke:#333,stroke-width:2px
+    classDef action fill:#ffb,stroke:#333,stroke-width:2px
+    
+    class User user
+    class Search,Filter input
+    class Frontend,API,Processor processing
+    class Directory1,Directory2,DirectoryN source
+    class Extract,DB data
+    class Results,Details output
 ```
 
 ## 🚀 Getting Started
