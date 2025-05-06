@@ -14,6 +14,7 @@ interface CyberBackgroundProps {
   particleSize?: { min: number; max: number }
   className?: string
   showContent?: boolean
+  timeScale?: number
 }
 
 function createNoise() {
@@ -121,6 +122,7 @@ const ParticlesBackground = memo(({
   particleSize = { min: 0.5, max: 3 },
   className,
   showContent = true,
+  timeScale = 0.1,
 }: CyberBackgroundProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const noise = createNoise()
@@ -167,7 +169,7 @@ const ParticlesBackground = memo(({
       ctx.fillRect(0, 0, canvas.width, canvas.height)
 
       for (const particle of particles) {
-        particle.life += 1
+        particle.life += timeScale
         if (particle.life > particle.maxLife) {
           particle.life = 0
           particle.x = Math.random() * canvas.width
@@ -177,14 +179,18 @@ const ParticlesBackground = memo(({
 
         const opacity = Math.sin((particle.life / particle.maxLife) * Math.PI) * 0.15
 
-        const n = noise.simplex3(particle.x * noiseIntensity, particle.y * noiseIntensity, Date.now() * 0.0001)
+        const n = noise.simplex3(
+          particle.x * noiseIntensity, 
+          particle.y * noiseIntensity, 
+          Date.now() * 0.0001 * timeScale
+        )
 
         const angle = n * Math.PI * 4
         particle.velocity.x = Math.cos(angle) * 1.2
         particle.velocity.y = Math.sin(angle) * 1.2
 
-        particle.x += particle.velocity.x
-        particle.y += particle.velocity.y
+        particle.x += particle.velocity.x * timeScale
+        particle.y += particle.velocity.y * timeScale
 
         if (particle.x < 0) particle.x = canvas.width
         if (particle.x > canvas.width) particle.x = 0
@@ -208,7 +214,7 @@ const ParticlesBackground = memo(({
 
     window.addEventListener("resize", handleResize)
     return () => window.removeEventListener("resize", handleResize)
-  }, [particleCount, noiseIntensity, particleSize, noise]) // Only rerender if these props change
+  }, [particleCount, noiseIntensity, particleSize, noise, timeScale]) // Only rerender if these props change
 
   return (
     <div className={cn("w-full h-full bg-black", className)}>

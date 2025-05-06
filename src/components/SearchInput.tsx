@@ -44,22 +44,22 @@ const suggestionVariants = {
     }
   }),
   hover: {
-    scale: 1.05,
-    y: -3,
-    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+    y: -1,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    boxShadow: '0 2px 8px -2px rgba(0, 0, 0, 0.3)',
     transition: { 
       type: "spring", 
-      stiffness: 400, 
-      damping: 10 
+      stiffness: 400,
+      damping: 10
     }
   },
   tap: { 
-    scale: 0.95,
-    y: 0,
+    y: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     transition: { 
       type: "spring", 
-      stiffness: 300,
-      damping: 15
+      stiffness: 400,
+      damping: 10
     }
   }
 };
