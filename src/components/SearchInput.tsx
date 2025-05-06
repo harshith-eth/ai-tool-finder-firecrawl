@@ -192,6 +192,9 @@ export const SearchInput: React.FC<SearchInputProps> = ({ onSearch, isProcessing
               opacity: 1,
               boxShadow: isInputFocused ? "0 0 0 2px rgba(255, 255, 255, 0.2)" : "0 0 0 0px rgba(255, 255, 255, 0)"
             }}
+            style={{
+              boxShadow: "0 0 0 0px rgba(255, 255, 255, 0)"
+            }}
             transition={{ 
               type: "spring", 
               stiffness: 200, 
