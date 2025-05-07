@@ -14,19 +14,35 @@ export interface FirecrawlConfig {
   apiKey: string;
 }
 
+export interface AgentOptions {
+  model: string;
+  prompt?: string;
+}
+
+export interface JsonOptions {
+  prompt?: string;
+  systemPrompt?: string;
+  extractionSchema?: Record<string, any>;
+  mode?: string;
+  pageOptions?: {
+    onlyMainContent?: boolean;
+  };
+}
+
+export interface ActionOption {
+  type: string;
+  milliseconds?: number;
+  selector?: string;
+  text?: string;
+  key?: string;
+}
+
 export interface ScrapeOptions {
   formats?: FirecrawlFormat[];
-  jsonOptions?: {
-    prompt?: string;
-    schema?: any;
-    systemPrompt?: string;
-  };
+  jsonOptions?: JsonOptions;
   proxy?: 'basic' | 'stealth';
-  agent?: {
-    model: string;
-    prompt: string;
-    [key: string]: any;
-  };
+  agent?: AgentOptions;
+  actions?: ActionOption[];
   pageOptions?: {
     onlyMainContent?: boolean;
     waitFor?: number;
@@ -44,6 +60,7 @@ export interface CrawlOptions {
   limit?: number;
   scrapeOptions?: ScrapeOptions;
   proxy?: 'basic' | 'stealth';
+  headers?: Record<string, string>;
 }
 
 export interface SearchOptions {
@@ -71,6 +88,10 @@ export interface FirecrawlDocument {
   title?: string;
   description?: string;
   content?: string;
+  actions?: {
+    screenshots?: string[];
+    scrapes?: Array<{url: string, html: string}>;
+  };
 }
 
 export interface ScrapeResponse {
@@ -99,4 +120,13 @@ export interface ErrorResponse {
 
 export type FirecrawlScrapeResult = ScrapeResponse | ErrorResponse;
 export type FirecrawlCrawlResult = CrawlResponse | ErrorResponse;
-export type FirecrawlSearchResult = SearchResponse | ErrorResponse; 
+export type FirecrawlSearchResult = SearchResponse | ErrorResponse;
+
+// Define ToolPricingTier here if it's specific to how tools are structured in the app
+// Or ensure it's exported from a shared types file if used elsewhere
+export interface ToolPricingTier {
+  name: string;
+  price: string;
+  features: string[];
+  popular?: boolean;
+} 

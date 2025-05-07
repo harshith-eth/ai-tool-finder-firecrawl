@@ -10,7 +10,10 @@ import type {
   SearchOptions,
   FirecrawlSearchResult,
   SearchResponse,
-  FirecrawlDocument
+  FirecrawlDocument,
+  AgentOptions,
+  JsonOptions,
+  ActionOption
 } from '../types/firecrawl';
 
 // Initialize Firecrawl client
@@ -29,7 +32,9 @@ export const firecrawlClient = new FirecrawlApp(config);
 // Make sure we only include formats that don't require special options
 const DEFAULT_FORMATS: FirecrawlFormat[] = ['markdown', 'html'];
 
-// Scraping functions
+/**
+ * Scrape a single URL with optional configuration
+ */
 export const scrapeSingleUrl = async (url: string, options?: ScrapeOptions): Promise<FirecrawlScrapeResult> => {
   try {
     // Ensure if formats includes 'json', we have jsonOptions
@@ -54,9 +59,6 @@ export const scrapeSingleUrl = async (url: string, options?: ScrapeOptions): Pro
       safeOptions.formats = DEFAULT_FORMATS;
     }
     
-    // Create the request URL
-    let requestUrl = url;
-    
     // Create streamlined API options
     const apiOptions: Record<string, any> = { 
       formats: safeOptions.formats
@@ -65,6 +67,11 @@ export const scrapeSingleUrl = async (url: string, options?: ScrapeOptions): Pro
     // Add jsonOptions if needed
     if (safeOptions.jsonOptions) {
       apiOptions.jsonOptions = safeOptions.jsonOptions;
+    }
+    
+    // Add actions if provided
+    if (safeOptions.actions && safeOptions.actions.length > 0) {
+      apiOptions.actions = safeOptions.actions;
     }
     
     // Add top-level options from pageOptions or defaults
@@ -82,10 +89,26 @@ export const scrapeSingleUrl = async (url: string, options?: ScrapeOptions): Pro
       apiOptions.fetchPageContent = safeOptions.pageOptions.fetchPageContent;
     }
     
+    // Add agent if provided (FIRE-1 support)
+    if (agentOption) {
+      apiOptions.agent = {
+        model: agentOption.model || 'FIRE-1',
+        prompt: agentOption.prompt || undefined
+      };
+    }
+    
     // Handle proxy via headers
     apiOptions.headers = {
       'X-Firecrawl-Proxy': proxyOption
     };
+    
+    // Add any custom headers if provided
+    if (safeOptions.headers) {
+      apiOptions.headers = {
+        ...apiOptions.headers,
+        ...safeOptions.headers
+      };
+    }
     
     // Add retry logic for robustness
     let attempts = 0;
@@ -94,13 +117,13 @@ export const scrapeSingleUrl = async (url: string, options?: ScrapeOptions): Pro
     
     while (attempts < maxAttempts) {
       try {
-        console.log(`Attempt ${attempts + 1}/${maxAttempts} to scrape ${requestUrl}`);
+        console.log(`Attempt ${attempts + 1}/${maxAttempts} to scrape ${url}`);
         
         // Make the API call with clean options
-        result = await firecrawlClient.scrapeUrl(requestUrl, apiOptions);
+        result = await firecrawlClient.scrapeUrl(url, apiOptions);
         
         if (result.success) {
-          console.log(`Successfully scraped ${requestUrl} on attempt ${attempts + 1}`);
+          console.log(`Successfully scraped ${url} on attempt ${attempts + 1}`);
           break;
         } else {
           console.error(`Failed attempt ${attempts + 1}/${maxAttempts}:`, result.error);
@@ -126,6 +149,7 @@ export const scrapeSingleUrl = async (url: string, options?: ScrapeOptions): Pro
               delete apiOptions.jsonOptions;
               delete apiOptions.onlyMainContent;
               delete apiOptions.waitFor;
+              delete apiOptions.agent; // Remove agent for simplicity in final attempt
               console.log('Simplifying request options for final attempt');
             }
           }
@@ -161,7 +185,9 @@ export const scrapeSingleUrl = async (url: string, options?: ScrapeOptions): Pro
   }
 };
 
-// Crawling functions
+/**
+ * Crawl a website with specified options
+ */
 export const crawlWebsite = async (url: string, options?: CrawlOptions): Promise<FirecrawlCrawlResult> => {
   try {
     const safeOptions = options ? { ...options } : { limit: 10, scrapeOptions: { formats: DEFAULT_FORMATS } };
@@ -187,15 +213,6 @@ export const crawlWebsite = async (url: string, options?: CrawlOptions): Promise
       }
     }
     
-    // Ensure that if 'json' or 'extract' format is used, we provide the required path
-    if (safeOptions.scrapeOptions?.formats?.includes('json') && safeOptions.scrapeOptions.jsonOptions) {
-      if (!safeOptions.scrapeOptions.jsonOptions.schema) {
-        safeOptions.scrapeOptions.jsonOptions.schema = { path: [] };
-      } else if (!safeOptions.scrapeOptions.jsonOptions.schema.path) {
-        safeOptions.scrapeOptions.jsonOptions.schema.path = [];
-      }
-    }
-    
     // Create request options with headers for proxy if needed
     const apiOptions: Record<string, any> = { ...safeOptions };
     
@@ -210,9 +227,52 @@ export const crawlWebsite = async (url: string, options?: CrawlOptions): Promise
       };
     }
     
-    const result = await firecrawlClient.crawlUrl(url, apiOptions);
+    // Add retry logic for crawl
+    let attempts = 0;
+    const maxAttempts = 2; // Fewer attempts for crawling as it's more intensive
+    let result: any = null; // Initialize result to null to avoid undefined
     
-    if (result.success) {
+    while (attempts < maxAttempts) {
+      try {
+        console.log(`Crawl attempt ${attempts + 1}/${maxAttempts} for ${url}`);
+        
+        // Make the API call
+        result = await firecrawlClient.crawlUrl(url, apiOptions);
+        
+        if (result.success) {
+          console.log(`Successfully crawled ${url} on attempt ${attempts + 1}`);
+          break;
+        } else {
+          console.error(`Failed crawl attempt ${attempts + 1}/${maxAttempts}:`, result.error);
+          attempts++;
+          
+          if (attempts < maxAttempts) {
+            // Wait for 3 seconds before retrying
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            
+            // Simplify options for the next attempt
+            if (apiOptions.scrapeOptions) {
+              apiOptions.scrapeOptions.formats = ['markdown'];
+              delete apiOptions.scrapeOptions.jsonOptions;
+            }
+            
+            // Reduce limit for next attempt
+            if (apiOptions.limit > 5) {
+              apiOptions.limit = 5;
+            }
+          }
+        }
+      } catch (attemptError) {
+        console.error(`Error on crawl attempt ${attempts + 1}/${maxAttempts}:`, attemptError);
+        attempts++;
+        
+        if (attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+      }
+    }
+    
+    if (result && result.success) {
       return {
         success: true,
         status: 'completed',
@@ -222,10 +282,10 @@ export const crawlWebsite = async (url: string, options?: CrawlOptions): Promise
         data: 'data' in result ? result.data : []
       } as CrawlResponse;
     } else {
-      console.error('API error response:', result.error);
+      console.error('API error response:', result ? result.error : 'Unknown error occurred');
       return {
         success: false,
-        error: 'error' in result ? result.error : 'Unknown error occurred'
+        error: result && 'error' in result ? result.error : 'Unknown error occurred'
       };
     }
   } catch (error) {
@@ -237,16 +297,49 @@ export const crawlWebsite = async (url: string, options?: CrawlOptions): Promise
   }
 };
 
-// Extract structured data
-export const extractStructuredData = async (url: string, prompt: string): Promise<FirecrawlScrapeResult> => {
+/**
+ * Extract structured data using LLM extraction with or without schema
+ */
+export const extractStructuredData = async (
+  url: string, 
+  prompt: string,
+  options?: {
+    systemPrompt?: string,
+    extractionSchema?: Record<string, any>,
+    agent?: AgentOptions,
+    proxy?: 'basic' | 'stealth'
+  }
+): Promise<FirecrawlScrapeResult> => {
   try {
-    const result = await firecrawlClient.scrapeUrl(url, {
+    // Prepare JSON options
+    const jsonOptions: JsonOptions = {
+      prompt,
+      systemPrompt: options?.systemPrompt || 'Extract structured data from the provided content.'
+    };
+    
+    // Add extraction schema if provided
+    if (options?.extractionSchema) {
+      jsonOptions.extractionSchema = options.extractionSchema;
+      jsonOptions.mode = 'llm-extraction';
+    }
+    
+    // Prepare scrape options
+    const scrapeOptions: ScrapeOptions = {
       formats: ['json'],
-      jsonOptions: {
-        prompt,
-        systemPrompt: 'Extract structured data from the provided content.'
-      }
-    });
+      jsonOptions,
+      proxy: options?.proxy || 'stealth'
+    };
+    
+    // Add FIRE-1 agent if requested
+    if (options?.agent) {
+      scrapeOptions.agent = {
+        model: options.agent.model || 'FIRE-1',
+        prompt: options.agent.prompt
+      };
+    }
+    
+    // Execute the scrape operation
+    const result = await scrapeSingleUrl(url, scrapeOptions);
     
     if (result.success) {
       return {
@@ -268,7 +361,9 @@ export const extractStructuredData = async (url: string, prompt: string): Promis
   }
 };
 
-// Add search function using Firecrawl's search capabilities
+/**
+ * Execute a search using Firecrawl's search capabilities
+ */
 export const searchWithFirecrawl = async (query: string, options?: SearchOptions): Promise<FirecrawlSearchResult> => {
   try {
     console.log(`Searching with Firecrawl for: "${query}"`);
@@ -357,19 +452,72 @@ export const searchWithFirecrawl = async (query: string, options?: SearchOptions
   }
 };
 
-// Extract structured data using schema for more reliable tool information
-export const extractToolInfo = async (url: string): Promise<FirecrawlScrapeResult> => {
+/**
+ * Extract tool information using FIRE-1 agent
+ * This is a specialized function for extracting AI tool information
+ */
+export const extractToolInfoWithAgent = async (url: string): Promise<FirecrawlScrapeResult> => {
   try {
-    console.log(`Extracting tool information from: ${url}`);
+    console.log(`Extracting tool information from: ${url} using FIRE-1 agent`);
     
-    const result = await firecrawlClient.scrapeUrl(url, {
-      formats: ['markdown'],
-      onlyMainContent: true,
-      waitFor: 3000,
-      headers: {
-        'X-Firecrawl-Proxy': 'stealth'
+    // Define extraction schema for tool information
+    const extractionSchema = {
+      type: "object",
+      properties: {
+        name: { type: "string" },
+        tagline: { type: "string" },
+        description: { type: "string" },
+        pricing: { type: "string" },
+        features: { 
+          type: "array",
+          items: { type: "string" }
+        },
+        useCases: {
+          type: "array",
+          items: { type: "string" }
+        },
+        pros: {
+          type: "array",
+          items: { type: "string" }
+        },
+        cons: {
+          type: "array",
+          items: { type: "string" }
+        },
+        websiteUrl: { type: "string" },
+        imageUrl: { type: "string" },
+        videoUrl: { type: "string" },
+        categories: {
+          type: "array",
+          items: { type: "string" }
+        }
+      },
+      required: ["name", "description"]
+    };
+    
+    // Define agent prompt for better extraction
+    const agentPrompt = `
+      Navigate through this AI tool's website.
+      Look for key information like features, pricing, use cases, pros/cons.
+      If there's a demo video, note its URL.
+      If pricing isn't immediately visible, check for a pricing page link and navigate to it.
+      Look for screenshots or product images.
+    `;
+    
+    // Use the extraction function with FIRE-1 agent
+    const result = await extractStructuredData(
+      url,
+      "Extract comprehensive information about this AI tool including its name, description, pricing, features, use cases, pros, cons, and any visual content.",
+      {
+        systemPrompt: "You are an AI tool information extractor. Your goal is to gather complete information about AI tools.",
+        extractionSchema,
+        agent: {
+          model: "FIRE-1",
+          prompt: agentPrompt
+        },
+        proxy: "stealth"
       }
-    });
+    );
     
     if (result.success) {
       return {
@@ -377,14 +525,24 @@ export const extractToolInfo = async (url: string): Promise<FirecrawlScrapeResul
         data: 'data' in result ? result.data : undefined
       } as FirecrawlScrapeResult;
     } else {
-      console.error('API error extracting tool info:', result.error);
-      return {
-        success: false,
-        error: 'error' in result ? result.error : 'Unknown error occurred'
-      };
+      console.error('API error extracting tool info with FIRE-1:', result.error);
+      
+      // Fall back to regular extraction without agent
+      console.log('Falling back to regular extraction without agent');
+      
+      return await scrapeSingleUrl(url, {
+        formats: ['markdown', 'json'],
+        jsonOptions: {
+          prompt: "Extract information about this AI tool including name, description, features, and pricing.",
+          extractionSchema
+        },
+        onlyMainContent: true,
+        waitFor: 3000,
+        proxy: 'stealth'
+      });
     }
   } catch (error) {
-    console.error('Error extracting tool info:', error);
+    console.error('Error extracting tool info with agent:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred'
@@ -392,116 +550,101 @@ export const extractToolInfo = async (url: string): Promise<FirecrawlScrapeResul
   }
 };
 
-// Add specialized function for ProductHunt searches
-export const scrapeProductHuntSearch = async (query: string): Promise<FirecrawlScrapeResult> => {
+/**
+ * Extract AI tool information from a search results page
+ * Specialized for ProductHunt but can work with other sites
+ */
+export const scrapeToolSearch = async (query: string, site: string = 'producthunt'): Promise<FirecrawlScrapeResult> => {
   try {
-    console.log(`Scraping ProductHunt search for: "${query}"`);
-    const url = `https://www.producthunt.com/search?q=${encodeURIComponent(query + " AI")}`;
+    console.log(`Scraping ${site} search for: "${query}"`);
     
-    // Multiple attempts with different strategies
-    const maxAttempts = 3;
-    let attempts = 0;
-    let result: any = null;
-    
-    while (attempts < maxAttempts) {
-      try {
-        console.log(`ProductHunt search attempt ${attempts + 1}/${maxAttempts}`);
-        
-        // First try approach: direct HTML extraction
-        const htmlOptions = {
-          formats: ['html', 'markdown'] as FirecrawlFormat[],
-          onlyMainContent: true,
-          waitFor: 3000,
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'X-Firecrawl-Proxy': attempts === 0 ? 'stealth' : 'basic'
-          }
-        };
-        
-        // Make the API call
-        const htmlResult = await firecrawlClient.scrapeUrl(url, htmlOptions);
-        const htmlData = htmlResult.success && 'data' in htmlResult ? htmlResult.data as FirecrawlDocument : null;
-        
-        if (htmlResult.success && htmlData) {
-          // Now use the HTML result for LLM extraction
-          const extractionPrompt = `
-            Extract all AI tools related to "${query}" from this ProductHunt search results page.
-            For each tool, extract:
-            - name: The name of the tool
-            - description: A brief description of what it does
-            - url: The URL to the tool's page (should be a full URL starting with https://www.producthunt.com)
-            - upvotes: The number of upvotes (as a number)
-            - imageUrl: URL to the tool's logo or image
-
-            Return as JSON array of objects with these properties. Extract at least 5 tools if available.
-            If no tools are found, return an empty array.
-          `;
-          
-          const llmOptions = {
-            formats: ['json'] as FirecrawlFormat[],
-            jsonOptions: {
-              prompt: extractionPrompt
-            }
-          };
-          
-          const llmResult = await firecrawlClient.scrapeUrl(url, llmOptions);
-          const llmData = llmResult.success && 'data' in llmResult ? llmResult.data as FirecrawlDocument : null;
-          
-          if (llmResult.success && llmData && llmData.json && Array.isArray(llmData.json)) {
-            console.log(`LLM extraction successful, found ${llmData.json.length} products`);
-            
-            // Create a compatible result structure with appropriate type handling
-            result = {
-              success: true,
-              data: {
-                json: {
-                  products: llmData.json
-                },
-                html: htmlData.html || ''
-              }
-            };
-            break;
-          } else {
-            console.log('LLM extraction did not return products array, trying another method');
-            attempts++;
-            
-            if (attempts < maxAttempts) {
-              await new Promise(resolve => setTimeout(resolve, 2000));
-            }
-          }
-        } else {
-          console.log(`HTML extraction failed on attempt ${attempts + 1}`);
-          attempts++;
-          
-          if (attempts < maxAttempts) {
-            await new Promise(resolve => setTimeout(resolve, 2000));
-          }
-        }
-      } catch (attemptError) {
-        console.error(`Error on ProductHunt search attempt ${attempts + 1}:`, attemptError);
-        attempts++;
-        
-        if (attempts < maxAttempts) {
-          await new Promise(resolve => setTimeout(resolve, 2000));
-        }
-      }
+    // Determine the appropriate URL based on site
+    let url: string;
+    if (site === 'producthunt') {
+      url = `https://www.producthunt.com/search/products?q=${encodeURIComponent(query + " AI")}`;
+    } else {
+      url = `https://www.google.com/search?q=${encodeURIComponent(query + " AI tool")}`;
     }
     
-    if (result && result.success && result.data) {
+    // Define actions for interacting with the page
+    const actions: ActionOption[] = [
+      { type: "wait", milliseconds: 3000 },
+      { type: "scrape" },
+      { type: "screenshot" }
+    ];
+    
+    // Define extraction schema for AI tools
+    const extractionSchema = {
+      type: "object",
+      properties: {
+        products: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              name: { type: "string" },
+              description: { type: "string" },
+              tagline: { type: "string" },
+              url: { type: "string" },
+              websiteUrl: { type: "string" },
+              upvotes: { type: "number" },
+              imageUrl: { type: "string" },
+              categories: {
+                type: "array",
+                items: { type: "string" }
+              }
+            },
+            required: ["name", "description"]
+          }
+        }
+      }
+    };
+    
+    // Perform search and extraction with FIRE-1 agent for more accurate results
+    const result = await scrapeSingleUrl(url, {
+      formats: ['json', 'markdown'],
+      jsonOptions: {
+        prompt: `Extract AI tools related to "${query}" from this search page. For each tool, get the name, description, tagline, url, website URL, upvotes count, image URL, and categories.`,
+        extractionSchema,
+        mode: "llm-extraction"
+      },
+      actions,
+      agent: {
+        model: "FIRE-1",
+        prompt: `Look for AI tools related to "${query}". Find product cards with names, descriptions, and links. If on ProductHunt, look for upvote counts and product images.`
+      },
+      proxy: "stealth",
+      waitFor: 5000,
+      onlyMainContent: true,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept-Language': 'en-US,en;q=0.9'
+      }
+    });
+    
+    if (result.success && result.data) {
+      // If we got results, return them
       return {
         success: true,
         data: result.data
       } as FirecrawlScrapeResult;
     } else {
-      console.error('ProductHunt search failed after all attempts');
-      return {
-        success: false,
-        error: result && 'error' in result ? result.error : 'Failed to extract ProductHunt results'
-      };
+      // If FIRE-1 fails, try simple extraction
+      console.error('FIRE-1 extraction failed, trying simple scraping');
+      
+      return await scrapeSingleUrl(url, {
+        formats: ['markdown', 'html'],
+        onlyMainContent: true,
+        waitFor: 5000,
+        proxy: 'stealth',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept-Language': 'en-US,en;q=0.9'
+        }
+      });
     }
   } catch (error) {
-    console.error('Error scraping ProductHunt search:', error);
+    console.error(`Error scraping ${site} search:`, error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred'

@@ -6,6 +6,12 @@
   <img src="https://www.firecrawl.dev/og.png" alt="AI Tool Finder" width="600">
 </p>
 
+## 🎬 Demo Video
+
+Check out the demo video to see the AI Tool Finder in action:
+
+[<img src="https://img.youtube.com/vi/Tn5O0LgwysA/hqdefault.jpg" alt="Watch the AI Tool Finder Demo Video" width="600">](https://www.youtube.com/watch?v=Tn5O0LgwysA)
+
 ## ✨ Features
 
 - **Clean Modern UI**: Black translucent blurry design with beautiful animations
@@ -73,6 +79,37 @@ flowchart TD
     classDef data fill:#f39c12,stroke:#000,stroke-width:2px,color:#000,font-weight:bold
     classDef output fill:#1abc9c,stroke:#000,stroke-width:2px,color:#000,font-weight:bold
 ```
+
+## 💡 Expanding Tool Sources & Functionality
+
+This application is designed to be extensible, allowing you to integrate various sources for discovering AI tools and enhance its capabilities. The primary tool finding logic is within `src/services/tool-finder.ts`.
+
+### Using a Comprehensive List of AI Directories
+
+For a more comprehensive tool discovery process, you can leverage curated lists of AI directories. A great resource for this is:
+
+*   **[AI Directories List on GitHub by harshith-eth](https://github.com/harshith-eth/ai-directories)**
+
+To integrate this (or similar lists):
+
+1.  **Configure a New Source**:
+    *   Add a new configuration object to the `TOOL_SOURCES` array in `src/services/tool-finder.ts`.
+    *   You'll likely want to fetch the raw content of the directory list (e.g., the README.md from the GitHub repository). You might need to add a small utility function in `src/services/firecrawl.ts` (using `scrapeSingleUrl` with a `markdown` format) or use a simple `fetch` if it's a raw text/markdown file accessible via URL.
+    *   Implement a `toolUrlExtractor` function within your new source configuration. This function will parse the fetched content (e.g., markdown table) to extract individual tool names and their direct website URLs.
+
+2.  **Process Extracted URLs**:
+    *   The `tool-finder.ts` service can then take these URLs and use the `extractToolInfoWithAgent` function (from `src/services/firecrawl.ts`) to perform a deep scrape and analysis of each tool's website using the FIRE-1 agent.
+
+This approach allows the application to dynamically pull from and process a wide range of AI tool sources.
+
+### Customizing AI Behavior
+
+The AI's responses and data extraction capabilities can be fine-tuned by modifying the prompts within:
+
+*   `src/services/azure-openai.ts`: Contains prompts for various tasks like tool data extraction, ranking, and enhancement.
+*   `src/services/chat-service.ts`: Manages the prompts for the contextual AI chat assistant.
+
+Adjusting these prompts can significantly alter the performance and output quality of the AI components.
 
 ## 🚀 Getting Started
 
@@ -181,7 +218,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Contact
 
-For any queries, reach out to Eric Ciarla ([@ericciarla](https://twitter.com/ericciarla)) - Co-Founder of Firecrawl
+For any queries, reach out to Firecrawl.
 
 Follow us on Twitter: [@firecrawl_dev](https://x.com/firecrawl_dev)
 
